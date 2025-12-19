@@ -1,3 +1,5 @@
+import mlflow
+import mlflow.sklearn
 import time
 import math
 import requests
@@ -7,6 +9,9 @@ import matplotlib.pyplot as plt
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+# 設定 MLflow tracking URI
+mlflow.set_tracking_uri("http://localhost:5000")
 
 st.set_page_config(page_title="BTC Direction Predictor", layout="wide")
 st.title("BTC/USDT 漲跌方向預測")
@@ -309,15 +314,33 @@ X_train, X_test, y_train, y_test, split_idx = _safe_train_test_split(X, y, train
 # ---------------------------
 # Train + predict
 # ---------------------------
-rf = RandomForestClassifier(
-    n_estimators=n_estimators,
-    max_depth=max_depth,
-    random_state=seed
-)
-rf.fit(X_train, y_train)
-y_pred = rf.predict(X_test)
+# 確保結束任何前一個 run
+mlflow.end_run()
 
-acc = accuracy_score(y_test, y_pred)
+with mlflow.start_run(nested=False):
+    # 記錄參數
+    mlflow.log_param("n_estimators", n_estimators)
+    mlflow.log_param("max_depth", max_depth)
+    mlflow.log_param("train_ratio", train_ratio)
+    mlflow.log_param("horizon_hours", horizon_hours)
+    mlflow.log_param("interval", interval)
+
+    # 訓練
+    rf = RandomForestClassifier(
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=seed
+    )
+    rf.fit(X_train, y_train)
+    y_pred = rf.predict(X_test)
+
+    # 評估
+    acc = accuracy_score(y_test, y_pred)
+    mlflow.log_metric("accuracy", acc)
+
+    # 存模型
+    mlflow.sklearn.log_model(rf, "random_forest_model")
+    
 baseline = max((y_test == 1).mean(), (y_test == 0).mean())
 
 col1, col2, col3, col4, col5 = st.columns(5)

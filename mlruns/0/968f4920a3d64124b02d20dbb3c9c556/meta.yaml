@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/968f4920a3d64124b02d20dbb3c9c556/artifacts
+end_time: 1766151207552
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 968f4920a3d64124b02d20dbb3c9c556
+run_name: learned-gnat-453
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1766151183848
+status: 3
+tags: []
+user_id: User

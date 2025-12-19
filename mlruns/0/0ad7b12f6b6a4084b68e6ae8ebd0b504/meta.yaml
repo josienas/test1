@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/0ad7b12f6b6a4084b68e6ae8ebd0b504/artifacts
+end_time: 1766151425826
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0ad7b12f6b6a4084b68e6ae8ebd0b504
+run_name: sedate-ape-377
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1766151419326
+status: 3
+tags: []
+user_id: User
