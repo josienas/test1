@@ -209,9 +209,13 @@ max_depth = st.sidebar.slider("max_depth", 2, 20, 5, 1)
 seed = st.sidebar.number_input("random_state（seed）", min_value=0, max_value=9999, value=42, step=1)
 
 st.sidebar.markdown("---")
-ma_short = st.sidebar.slider("MA short（bars）", 3, 60, 5, 1)
-ma_long = st.sidebar.slider("MA long（bars）", 5, 120, 10, 1)
-vol_w = st.sidebar.slider("Vol window（bars）", 3, 60, 5, 1)
+# MA sliders (hidden)
+# ma_short = st.sidebar.slider("MA short（bars）", 3, 60, 5, 1)
+# ma_long = st.sidebar.slider("MA long（bars）", 5, 120, 10, 1)
+# vol_w = st.sidebar.slider("Vol window（bars）", 3, 60, 5, 1)
+ma_short = 5
+ma_long = 10
+vol_w = 5
 
 # ✅ 強制刷新按鈕（清 cache + rerun）
 if st.sidebar.button("🔄 強制重新抓資料 / 重訓"):
