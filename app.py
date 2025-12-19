@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 st.set_page_config(page_title="BTC Direction Predictor", layout="wide")
-st.title("BTC/USDT 漲跌方向預測（可選時間尺度 / horizon / 資料來源）")
+st.title("BTC/USDT 漲跌方向預測")
 
 #666666
 # ---------------------------
@@ -187,7 +187,8 @@ def _safe_train_test_split(X: pd.DataFrame, y: pd.Series, train_ratio: float):
     if X_train.empty or X_test.empty:
         st.error("資料分割後訓練/測試集有空值，請調整 train ratio 或資料筆數。")
         st.stop()
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, split_idx
+
 
 # ---------------------------
 # UI Controls
@@ -243,7 +244,7 @@ df_raw = df_raw.dropna(subset=["date", "close"])
 
 
 # ✅ 驗證：你真的換到 interval 了嗎？
-st.subheader("資料檢查（確保真的換到時間尺度）")
+st.subheader("資料檢查")
 c1, c2, c3 = st.columns(3)
 c1.write("資料筆數")
 c1.metric("rows", f"{len(df_raw)}")
@@ -299,7 +300,7 @@ feature_cols = [
 X = df[feature_cols]
 y = df["y"]
 
-X_train, X_test, y_train, y_test = _safe_train_test_split(X, y, train_ratio)
+X_train, X_test, y_train, y_test, split_idx = _safe_train_test_split(X, y, train_ratio)
 
 # ---------------------------
 # Train + predict
@@ -332,52 +333,56 @@ st.success(f"📌 最新特徵時間（{latest_features_time}）→ 模型預測
 
 
 # ---------------------------
-# Eval
+# Eval (hidden)
 # ---------------------------
-st.subheader("混淆矩陣 / 報告")
-cm = confusion_matrix(y_test, y_pred)
-st.write("Confusion Matrix [[TN FP],[FN TP]]:")
-st.write(cm)
-st.text(classification_report(y_test, y_pred, digits=4))
+# st.subheader("混淆矩陣 / 報告")
+# cm = confusion_matrix(y_test, y_pred)
+# st.write("Confusion Matrix [[TN FP],[FN TP]]:")
+# st.write(cm)
+# st.text(classification_report(y_test, y_pred, digits=4))
 
 
 # ---------------------------
-# Feature importance plot
+# Feature importance plot (hidden)
 # ---------------------------
-st.subheader("特徵重要性")
-importances = pd.Series(rf.feature_importances_, index=feature_cols).sort_values(ascending=False)
-fig1 = plt.figure()
-importances.plot(kind="bar")
-plt.title("Feature Importance")
-plt.tight_layout()
-st.pyplot(fig1)
+# st.subheader("特徵重要性")
+# importances = pd.Series(rf.feature_importances_, index=feature_cols).sort_values(ascending=False)
+# fig1 = plt.figure()
+# importances.plot(kind="bar")
+# plt.title("Feature Importance")
+# plt.tight_layout()
+# st.pyplot(fig1)
 
 
 # ---------------------------
-# True vs Pred plot
+# True vs Pred plot (hidden)
 # ---------------------------
-st.subheader("True vs Pred（測試集方向）")
-plot_df = df.iloc[split_idx:].copy()
-plot_df["y_true"] = y_test.values
-plot_df["y_pred"] = y_pred
-
-fig2 = plt.figure(figsize=(12, 3.5))
-plt.plot(plot_df["date"], plot_df["y_true"], label="True", alpha=0.75)
-plt.plot(plot_df["date"], plot_df["y_pred"], label="Pred", alpha=0.75)
-plt.yticks([0, 1], ["Down", "Up"])
-plt.title("True vs Pred (Test Set)")
-plt.legend()
-plt.tight_layout()
-st.pyplot(fig2)
+# st.subheader("True vs Pred（測試集方向）")
+# plot_df = df.iloc[split_idx:].copy()
+# plot_df["y_true"] = y_test.values
+# plot_df["y_pred"] = y_pred
+# 
+# fig2 = plt.figure(figsize=(12, 3.5))
+# plt.plot(plot_df["date"], plot_df["y_true"], label="True", alpha=0.75)
+# plt.plot(plot_df["date"], plot_df["y_pred"], label="Pred", alpha=0.75)
+# plt.yticks([0, 1], ["Down", "Up"])
+# plt.title("True vs Pred (Test Set)")
+# plt.legend()
+# plt.tight_layout()
+# st.pyplot(fig2)
 
 
 # ---------------------------
 # Show a few predictions table
 # ---------------------------
 st.subheader("測試集前 15 筆：真實 vs 預測")
+# 因為 plot_df 被定義在被註解的區段中，需要在這裡重新定義
+plot_df = df.iloc[split_idx:].copy()
+plot_df["y_true"] = y_test.values
+plot_df["y_pred"] = y_pred
+
 show_df = plot_df[["date", "close", "y_true", "y_pred"]].head(15).copy()
 show_df["y_true_label"] = show_df["y_true"].map({1: "Up", 0: "Down"})
 show_df["y_pred_label"] = show_df["y_pred"].map({1: "Up", 0: "Down"})
 st.dataframe(show_df, use_container_width=True)
-g i t _ t e s t  
- 
+
