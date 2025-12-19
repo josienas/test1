@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 st.set_page_config(page_title="BTC Direction Predictor", layout="wide")
 st.title("BTC/USDT 漲跌方向預測（可選時間尺度 / horizon / 資料來源）")
 
-
+#666666
 # ---------------------------
 # Binance download
 # ---------------------------
@@ -51,6 +51,7 @@ def download_history(symbol="BTCUSDT", interval="1d", total_points=3000, sleep_s
     for c in ["open", "high", "low", "close", "volume"]:
         df[c] = df[c].astype(float)
     df = df[["date", "open", "high", "low", "close", "volume"]]
+    df = df.drop_duplicates(subset="date")
     df = df.sort_values("date").reset_index(drop=True)
     return df
 
@@ -78,7 +79,9 @@ def load_csv_by_interval(interval: str, total_points: int):
     for c in ["open", "high", "low", "close", "volume"]:
         df[c] = df[c].astype(float)
 
-    df = df[["date", "open", "high", "low", "close", "volume"]].sort_values("date").reset_index(drop=True)
+    df = df[["date", "open", "high", "low", "close", "volume"]]
+    df = df.drop_duplicates(subset="date")
+    df = df.sort_values("date").reset_index(drop=True)
 
     if total_points < len(df):
         df = df.tail(total_points).reset_index(drop=True)
@@ -163,6 +166,28 @@ def interval_to_hours(interval: str) -> int:
     mapping = {"1h": 1, "2h": 2, "4h": 4, "1d": 24}
     return mapping[interval]
 
+def _ensure_enough_rows(df: pd.DataFrame, horizon_bars: int, ma_long: int, vol_w: int) -> int:
+    """Return minimum required rows; raise Streamlit stop if insufficient."""
+    min_lookback = max(ma_long, vol_w, 26, 20, 14)  # longest window used in features
+    min_rows = min_lookback + horizon_bars + 2  # buffer to allow dropna and splitting
+    if len(df) < min_rows:
+        st.error(
+            f"資料不足（目前 {len(df)} 筆，至少需要 {min_rows} 筆）才能計算特徵與分割訓練/測試集，"
+            f"請減少 horizon 或增加資料筆數。"
+        )
+        st.stop()
+    return min_rows
+
+
+def _safe_train_test_split(X: pd.DataFrame, y: pd.Series, train_ratio: float):
+    split_idx = int(len(X) * train_ratio)
+    split_idx = min(max(split_idx, 1), len(X) - 1)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+    if X_train.empty or X_test.empty:
+        st.error("資料分割後訓練/測試集有空值，請調整 train ratio 或資料筆數。")
+        st.stop()
+    return X_train, X_test, y_train, y_test
 
 # ---------------------------
 # UI Controls
@@ -213,6 +238,10 @@ else:
         # 需要你資料夾內有 btc_1h.csv / btc_2h.csv / btc_4h.csv / btc_1d.csv
         df_raw = load_csv_by_interval(interval=interval, total_points=total_points)
 
+df_raw = df_raw.copy()
+df_raw = df_raw.dropna(subset=["date", "close"])
+
+
 # ✅ 驗證：你真的換到 interval 了嗎？
 st.subheader("資料檢查（確保真的換到時間尺度）")
 c1, c2, c3 = st.columns(3)
@@ -235,7 +264,14 @@ st.dataframe(df_raw.tail(10), use_container_width=True)
 # ---------------------------
 # Build dataset
 # ---------------------------
+_ensure_enough_rows(df_raw, horizon_bars=horizon_bars, ma_long=ma_long, vol_w=vol_w)
+
 df = make_features_and_label(df_raw, horizon_bars=horizon_bars, ma_short=ma_short, ma_long=ma_long, vol_w=vol_w)
+
+if df.empty:
+    st.error("特徵計算後沒有可用資料，請調整參數或增加資料筆數。")
+    st.stop()
+
 
 feature_cols = [
     # returns
@@ -263,10 +299,7 @@ feature_cols = [
 X = df[feature_cols]
 y = df["y"]
 
-split_idx = int(len(df) * train_ratio)
-X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
-y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
-
+X_train, X_test, y_train, y_test = _safe_train_test_split(X, y, train_ratio)
 
 # ---------------------------
 # Train + predict
@@ -346,3 +379,5 @@ show_df = plot_df[["date", "close", "y_true", "y_pred"]].head(15).copy()
 show_df["y_true_label"] = show_df["y_true"].map({1: "Up", 0: "Down"})
 show_df["y_pred_label"] = show_df["y_pred"].map({1: "Up", 0: "Down"})
 st.dataframe(show_df, use_container_width=True)
+g i t _ t e s t  
+ 
