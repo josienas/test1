@@ -1,0 +1,46 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.14.3
+    container_name: mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:////mlflow/mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"localhost\", 5000), timeout=5)'"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    networks:
+      - btc_network
+
+  btc_ui:
+    build: .
+    container_name: btc_ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=btc_direction
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    command: streamlit run app.py --server.address=0.0.0.0 --server.port=8501
+    networks:
+      - btc_network
+
+networks:
+  btc_network:
+    driver: bridge
